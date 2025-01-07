@@ -91,8 +91,6 @@ st.sidebar.markdown('Acesse o portal da [OpenAI](https://platform.openai.com/set
 openai_api_key = st.sidebar.text_input(label="OpenAI API Key", value=None, type = "password", placeholder='Informe a chave gerada na OpenAI')
 
 
-
-
 with col1:
     st.title("DSM V - Assistente de Diagnóstico")
 
