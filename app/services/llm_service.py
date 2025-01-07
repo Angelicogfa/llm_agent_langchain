@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Optional
 from langgraph.graph import StateGraph
 from langchain_core.documents import Document
 from langgraph.graph import START, MessagesState
@@ -19,7 +19,7 @@ class LLMService:
         self.__api_key = api_key
         self.__vector_database = vector_data_base
 
-    def build(self, thread_id: str, callbacks: List[BaseCallbackHandler]|None = None):
+    def build(self, thread_id: str, callbacks: Optional[List[BaseCallbackHandler]] = None):
         workflow = StateGraph(state_schema=State)
         config = { 'configurable': { 'thread_id': thread_id }}
         
@@ -27,7 +27,7 @@ class LLMService:
 
         def retrieve(state: State):
             vector_store = self.__vector_database()
-            context = vector_store.similarity_search(state["question"], k=5)
+            context = vector_store.similarity_search(state["question"], k=5) if state['question'] != '[START]' else []
             return { 'context': context }
         
         def prepare_query(state: State):

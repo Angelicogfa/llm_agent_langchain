@@ -1,25 +1,10 @@
-import os
-import warnings
-import streamlit as st
-from dotenv import load_dotenv
-from uuid import uuid4 as UUID
-from app.services import RagService, LLMService
-from langchain_core.messages import AIMessage, SystemMessage
-from langchain_community.callbacks import StreamlitCallbackHandler  
-from langchain_community.chat_message_histories.streamlit import StreamlitChatMessageHistory 
+# Agente para suporte psicologico
 
-LOCAL_DATA=os.path.join(os.path.abspath('.'), 'app', 'data', 'dsmv.pdf')
-LOCAL_VECTOR=os.path.join(os.path.abspath('.'), 'app', 'vector')
-load_dotenv()
-warnings.filterwarnings('ignore')
+Este agente tem como objeto apoiar na identificação de patologias da área de psicologia.
 
-msgs = StreamlitChatMessageHistory(key='langchain_messages')
-started = False
+## Prompt
 
-if 'thread_id' not in st.session_state:
-    st.session_state.thread_id = str(UUID())
-    msgs.clear()
-    msgs.add_message(SystemMessage(content="""
+```
 Você é profissional da área da saúde mental, um pós-doutorando em psicologia com ênfase em psicodiagnóstico de transtornos mentais, com 30 anos de experiência aplicada.
 
 ## A.) Formação acadêmica
@@ -79,64 +64,4 @@ Ao executar o processo de análise, dê sua visão apenas com base nos dados rep
                                    
 ## G.) Encerramento
 Ao encerrar um diagnostico e receber a confirmação ou agradecimento de encerramento agradeça ao profissional pelo trabalho e reinicie o processo ignorando toda a informação anteriormente recebida e inicie o processo pelo tópico B respeitando todas as etapas novamente.
-"""))
-    started = True
-
-st.set_page_config(page_title = "Assistente de Diagnostico")
-
-col1, col4 = st.columns([4, 1]) 
-
-value = os.getenv('API_KEY')
-st.sidebar.markdown('Acesse o portal da [OpenAI](https://platform.openai.com/settings/organization/api-keys) e crie uma chave')
-openai_api_key = st.sidebar.text_input(label="OpenAI API Key", value=None, type = "password", placeholder='Informe a chave gerada na OpenAI')
-
-
-
-
-with col1:
-    st.title("DSM V - Assistente de Diagnóstico")
-
-if st.sidebar.button("Reset"):
-    del st.session_state['thread_id']
-    st.rerun()
-
-avatars = {"human": "user", "ai": "assistant", "system": "assistant"}
-for idx, msg in enumerate(msgs.messages):  
-    
-    if not msg or msg.type == "system":
-        continue
-    elif msg.type == "human" and msg.content == '[START]':
-        continue
-
-    with st.chat_message(avatars[msg.type]):  
-        # for step in st.session_state.steps.get(str(idx), []):  
-        #     if step[0].tool == "_Exception":  
-        #         continue
-        #     with st.expander(f"✅ **{step[0].tool}**: {step[0].tool_input}"): 
-        #         st.write(step[0].log)  
-        #         st.write(f"**{step[1]}**")  
-        st.write(msg.content)  
-
-if prompt := st.chat_input(placeholder = "Digite uma pergunta para começar!") or started:
-
-    if started:
-        prompt = '[START]'
-
-    st.chat_message("user").write(prompt)
-
-    if not openai_api_key:
-        st.info("Adicione sua OpenAI API key para continuar.")
-        st.stop()
-
-    with st.chat_message("assistant"):
-        rag_service = RagService(openai_api_key, LOCAL_DATA, LOCAL_VECTOR)
-        llm_service = LLMService(api_key=openai_api_key, vector_data_base=rag_service.get_vector_store)
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts = False) 
-
-        app, config = llm_service.build(thread_id=st.session_state.thread_id, callbacks=[st_cb])
-        response = app.invoke({'question': prompt, 'messages': msgs.messages }, config=config)
-
-        st.write(response["answer"].content)
-        if not started:
-            msgs.add_message(response['messages'][-1])
-        msgs.add_message(AIMessage(content=response["answer"].content))
+```
